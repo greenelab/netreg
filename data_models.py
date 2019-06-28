@@ -93,9 +93,9 @@ class DataModel():
 
 
     def nmf(self, n_components, transform_df=False, transform_test_df=False,
-            init='nndsvdar', tol=5e-3,):
+            seed=1, init='nndsvdar', tol=5e-3,):
         self.nmf_fit = decomposition.NMF(n_components=n_components, init=init,
-                                         tol=tol)
+                                         tol=tol, random_state=seed)
         self.nmf_df = self.nmf_fit.fit_transform(self.df)
         colnames = ['nmf_{}'.format(x) for x in range(n_components)]
 

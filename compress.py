@@ -44,23 +44,13 @@ if __name__ == '__main__':
                    help='number of different seeds to run on current data')
     p.add_argument('-m', '--subset_mad_genes', type=int, default=8000,
                    help='subset num genes based on mean absolute deviation')
-    p.add_argument('-o', '--output_dir',
+    p.add_argument('-o', '--output_dir', default=cfg.models_dir,
                    help='where to save the output files')
     p.add_argument('-s', '--shuffle', action='store_true',
                    help='randomize gene expression data for negative control')
     args = p.parse_args()
 
-    if args.shuffle:
-        file_prefix = '{}_components_shuffled_'.format(args.num_components)
-    else:
-        file_prefix = '{}_components_'.format(args.num_components)
-
-    recon_file = os.path.join(args.output_dir,
-                              '{}reconstruction.tsv'.format(file_prefix))
-
-    if not os.path.exists(args.data_dir):
-        os.makedirs(args.data_dir)
-
+    # load input expression data
     rnaseq_train = (
         os.path.join(args.data_dir,
                      'train_tcga_expression_matrix_processed.tsv.gz')
@@ -73,14 +63,23 @@ if __name__ == '__main__':
     rnaseq_train_df = pd.read_csv(rnaseq_train, index_col=0, sep='\t')
     rnaseq_test_df = pd.read_csv(rnaseq_test, index_col=0, sep='\t')
 
-    # Determine most variably expressed genes and subset
+    # determine most variably expressed genes and subset, if necessary
     if args.subset_mad_genes is not None:
         mad_file = os.path.join(cfg.data_dir, 'tcga_mad_genes.tsv')
         rnaseq_train_df, rnaseq_test_df = subset_genes_by_mad(
             rnaseq_train_df, rnaseq_test_df, mad_file, args.subset_mad_genes)
 
-    np.random.seed(cfg.default_seed)
-    random_seeds = np.random.randint(0, high=1000000, size=args.num_seeds)
+    dm = DataModel(df=rnaseq_train_df, test_df=rnaseq_test_df)
+    dm.transform(how='zeroone')
+
+    if args.shuffle:
+        file_prefix = '{}_components_shuffled_'.format(args.num_components)
+    else:
+        file_prefix = '{}_components_'.format(args.num_components)
+
+    # specify location of output files
+    recon_file = os.path.join(args.output_dir,
+                              '{}reconstruction.tsv'.format(file_prefix))
 
     comp_out_dir = os.path.join(os.path.abspath(args.output_dir),
                                 'ensemble_z_matrices',
@@ -89,8 +88,8 @@ if __name__ == '__main__':
     if not os.path.exists(comp_out_dir):
         os.makedirs(comp_out_dir)
 
-    dm = DataModel(df=rnaseq_train_df, test_df=rnaseq_test_df)
-    dm.transform(how='zeroone')
+    np.random.seed(cfg.default_seed)
+    random_seeds = np.random.randint(0, high=1000000, size=args.num_seeds)
 
     reconstruction_results = []
     test_reconstruction_results = []
@@ -106,7 +105,9 @@ if __name__ == '__main__':
             dm.transform(how='zeroone')
 
         # add other models here
-        dm.nmf(n_components=args.num_components, transform_test_df=True)
+        dm.nmf(n_components=args.num_components,
+               transform_test_df=True,
+               seed=seed)
 
         # Obtain z matrix (sample scores per latent space feature) for all models
         full_z_file = os.path.join(cfg.models_dir,
