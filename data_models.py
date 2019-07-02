@@ -91,9 +91,29 @@ class DataModel():
                                         index=self.test_df.index,
                                         columns=self.test_df.columns)
 
+    @classmethod
+    def list_algorithms(self):
+        return ['pca', 'nmf']
+
+    def pca(self, n_components, transform_df=False, transform_test_df=False):
+        self.pca_fit = decomposition.PCA(n_components=n_components)
+        self.pca_df = self.pca_fit.fit_transform(self.df)
+        colnames = ['pca_{}'.format(x) for x in range(0, n_components)]
+        self.pca_df = pd.DataFrame(self.pca_df, index=self.df.index,
+                                   columns=colnames)
+        self.pca_weights = pd.DataFrame(self.pca_fit.components_,
+                                        columns=self.df.columns,
+                                        index=colnames)
+        if transform_df:
+            out_df = self.pca_fit.transform(transform_df)
+            return out_df
+
+        if transform_test_df:
+            self.pca_test_df = self.pca_fit.transform(self.test_df)
+
 
     def nmf(self, n_components, transform_df=False, transform_test_df=False,
-            seed=1, init='nndsvdar', tol=5e-3,):
+            seed=1, init='nndsvdar', tol=5e-3):
         self.nmf_fit = decomposition.NMF(n_components=n_components, init=init,
                                          tol=tol, random_state=seed)
         self.nmf_df = self.nmf_fit.fit_transform(self.df)
@@ -122,6 +142,16 @@ class DataModel():
         pandas dataframe of all model z matrices
         """
         all_models = []
+
+        if hasattr(self, 'pca_df'):
+            if test_set:
+                pca_df = pd.DataFrame(self.pca_test_df,
+                                      index=self.test_df.index,
+                                      columns=self.pca_df.columns)
+            else:
+                pca_df = self.pca_df
+            all_models += [pca_df]
+
         if hasattr(self, 'nmf_df'):
             if test_set:
                 nmf_df = pd.DataFrame(self.nmf_test_df,
@@ -144,6 +174,8 @@ class DataModel():
 
     def combine_weight_matrix(self):
         all_weight = []
+        if hasattr(self, 'pca_df'):
+            all_weight += [self.pca_weights]
         if hasattr(self, 'nmf_df'):
             all_weight += [self.nmf_weights]
 
@@ -171,6 +203,21 @@ class DataModel():
 
         all_reconstruction = {}
         reconstruct_mat = {}
+
+        if hasattr(self, 'pca_df'):
+            # Set PCA dataframe
+            if test_set:
+                pca_df = self.pca_test_df
+            else:
+                pca_df = self.pca_df
+
+            pca_reconstruct = self.pca_fit.inverse_transform(pca_df)
+            pca_recon = self._approx_keras_binary_cross_entropy(
+                pca_reconstruct, input_df, self.num_genes)
+            all_reconstruction['pca'] = [pca_recon]
+            reconstruct_mat['pca'] = pd.DataFrame(pca_reconstruct,
+                                                  index=input_df.index,
+                                                  columns=input_df.columns)
 
         if hasattr(self, 'nmf_df'):
             # Set NMF dataframe
