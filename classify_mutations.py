@@ -5,6 +5,7 @@ https://github.com/greenelab/BioBombe/blob/master/9.tcga-classify/classify-top-m
 """
 
 import os
+import argparse
 import numpy as np
 import pandas as pd
 
@@ -64,8 +65,17 @@ def load_pancancer_data():
 
 if __name__ == '__main__':
 
+    p = argparse.ArgumentParser()
+    p.add_argument('--gene_list', nargs='*', default=None,
+                   help='<Optional> Provide a list of genes to run\
+                         mutation classification for; default is all genes')
+    args = p.parse_args()
+
     # load data
     genes_df = load_top_50()
+    if args.gene_list is not None:
+        genes_df = genes_df[genes_df['gene'].isin(args.gene_list)]
+        genes_df.reset_index(drop=True, inplace=True)
 
     (sample_freeze_df,
      mutation_df,
