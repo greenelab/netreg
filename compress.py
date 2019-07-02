@@ -5,6 +5,7 @@ https://github.com/greenelab/BioBombe/blob/master/2.sequential-compression/scrip
 """
 import os
 import argparse
+import logging
 import numpy as np
 import pandas as pd
 from sklearn.decomposition import NMF
@@ -48,9 +49,14 @@ if __name__ == '__main__':
                    help='where to save the output files')
     p.add_argument('-s', '--shuffle', action='store_true',
                    help='randomize gene expression data for negative control')
+    p.add_argument('-v', '--verbose', action='store_true')
     args = p.parse_args()
 
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+
     # load input expression data
+    logging.debug('Loading gene expression data...')
     rnaseq_train = (
         os.path.join(args.data_dir,
                      'train_tcga_expression_matrix_processed.tsv.gz')
@@ -94,7 +100,8 @@ if __name__ == '__main__':
     reconstruction_results = []
     test_reconstruction_results = []
 
-    for seed in random_seeds:
+    logging.debug('Fitting compressed models...')
+    for ix, seed in enumerate(random_seeds, 1):
         np.random.seed(seed)
         seed_file = os.path.join(comp_out_dir, 'model_{}'.format(seed))
         if args.shuffle:
@@ -104,12 +111,15 @@ if __name__ == '__main__':
                            test_df=rnaseq_test_df)
             dm.transform(how='zeroone')
 
-        # add other models here
+        # TODO: add other models here
+        logging.debug('-- Fitting {} model for random seed {} of {}'.format(
+                      'nmf', ix, len(random_seeds)))
         dm.nmf(n_components=args.num_components,
                transform_test_df=True,
                seed=seed)
 
         # Obtain z matrix (sample scores per latent space feature) for all models
+        logging.debug('-- Saving data')
         full_z_file = os.path.join(cfg.models_dir,
                         '{}_z_matrix.tsv.gz'.format(seed_file))
         dm.combine_models().to_csv(full_z_file, sep='\t', compression='gzip')
