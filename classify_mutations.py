@@ -6,6 +6,7 @@ https://github.com/greenelab/BioBombe/blob/master/9.tcga-classify/classify-top-m
 
 import os
 import argparse
+import logging
 import numpy as np
 import pandas as pd
 
@@ -22,8 +23,11 @@ from tcga_util import (
 )
 
 def load_top_50():
-    # load top 50 mutated genes from BioBombe repo, these are
-    # precomputed there
+    """Load top 50 mutated genes from BioBombe repo.
+
+    These were precomputed for the equivalent experiments in the
+    BioBombe paper, so no need to recompute them.
+    """
     base_url = "https://github.com/greenelab/BioBombe/raw"
     commit = "aedc9dfd0503edfc5f25611f5eb112675b99edc9"
 
@@ -34,11 +38,11 @@ def load_top_50():
     return genes_df
 
 def load_pancancer_data():
-    # Load data to build y matrices
+    """Load data to build feature matrices from pancancer repo. """
+
     base_url = "https://github.com/greenelab/pancancer/raw"
     commit = "2a0683b68017fb226f4053e63415e4356191734f"
 
-    # Load data
     file = "{}/{}/data/sample_freeze.tsv".format(base_url, commit)
     sample_freeze_df = pd.read_csv(file, index_col=0, sep='\t')
 
@@ -69,14 +73,22 @@ if __name__ == '__main__':
     p.add_argument('--gene_list', nargs='*', default=None,
                    help='<Optional> Provide a list of genes to run\
                          mutation classification for; default is all genes')
+    p.add_argument('--verbose', action='store_true')
     args = p.parse_args()
 
+    if args.verbose:
+        logging.basicConfig(level=logging.DEBUG, format='%(message)s')
+
     # load data
+    logging.debug('Loading gene label data...')
     genes_df = load_top_50()
     if args.gene_list is not None:
         genes_df = genes_df[genes_df['gene'].isin(args.gene_list)]
         genes_df.reset_index(drop=True, inplace=True)
 
+    logging.debug('Loading pan-cancer data and building feature matrices...')
+    # TODO: this data can probably be cached somewhere to speed things up,
+    #       loading this data is currently v. slow
     (sample_freeze_df,
      mutation_df,
      copy_loss_df,
@@ -101,7 +113,6 @@ if __name__ == '__main__':
     num_genes = len(genes_df)
 
     for gene_idx, gene_series in genes_df.iterrows():
-        if gene_idx > 5: exit()
 
         gene_name = gene_series.gene
         classification = gene_series.classification
@@ -173,14 +184,14 @@ if __name__ == '__main__':
                         )
 
                         # Train the model
-                        print(
+                        logging.debug(
                             "Training model {} of {} for gene {} of {}".format(
                                 model_no, num_models, gene_idx+1, num_genes)
                         )
 
                         model_no += 1
 
-                        print(
+                        logging.debug(
                             "-- gene: {}, algorithm: {}, signal: {}, z_dim: {}, "
                             "seed: {}".format(gene_name, alg, signal, z_dim, seed)
                         )

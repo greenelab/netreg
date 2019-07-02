@@ -23,7 +23,8 @@ from dask_ml.model_selection import GridSearchCV
 import config as cfg
 
 
-def build_feature_dictionary(dataset="TCGA", load_data=False, store_train_test="both"):
+def build_feature_dictionary(dataset="TCGA", load_data=False,
+                             store_train_test="both"):
     """
     Generate a nested dictionary of the directory structure pointing to compressed
     feature matrices for training and testing sets
@@ -54,6 +55,10 @@ def build_feature_dictionary(dataset="TCGA", load_data=False, store_train_test="
             pattern = ("{}/*shuffled_z_*" if signal == 'shuffled'
                                           else "{}/*_z_*")
             for z_file in glob.glob(pattern.format(matrix_comp_dir)):
+
+                if signal == 'signal' and 'shuffled' in z_file:
+                    continue
+
                 seed = os.path.basename(z_file).split("_")[1]
 
                 if seed not in z_matrix_dict[signal][z_dim].keys():
@@ -69,6 +74,7 @@ def build_feature_dictionary(dataset="TCGA", load_data=False, store_train_test="
                     else:
                         z_matrix_dict[signal][z_dim][seed]["test"] = z_file
                 else:
+                    num_models += 1
                     if store_train_test == "test":
                         continue
                     if load_data:
@@ -78,7 +84,6 @@ def build_feature_dictionary(dataset="TCGA", load_data=False, store_train_test="
                     else:
                         z_matrix_dict[signal][z_dim][seed]["train"] = z_file
 
-                num_models += 1
 
     return z_matrix_dict, num_models
 
