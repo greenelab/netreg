@@ -11,3 +11,8 @@ done
 cmd="python classify_mutations.py --v --g TP53 PTEN PIK3CA KRAS TTN"
 echo "Running: $cmd"
 eval $cmd
+
+# run classification using raw expression features
+cmd="python classify_with_raw_expression.py --v --g TP53 PTEN PIK3CA KRAS TTN"
+echo "Running: $cmd"
+eval $cmd
