@@ -117,6 +117,7 @@ if __name__ == '__main__':
 
     # Obtain a dictionary of file directories for loading each feature matrix (X)
     z_matrix_dict, num_models = build_feature_dictionary()
+    num_models *= len(algs_to_run)
 
     num_genes = len(genes_df)
 
