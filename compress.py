@@ -62,7 +62,7 @@ if __name__ == '__main__':
         logging.basicConfig(level=logging.DEBUG, format='%(message)s')
 
     # load input expression data
-    logging.debug('Loading gene expression data...')
+    logging.debug('Loading raw gene expression data...')
     rnaseq_train = (
         os.path.join(args.data_dir,
                      'train_tcga_expression_matrix_processed.tsv.gz')
