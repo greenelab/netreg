@@ -40,8 +40,6 @@ if __name__ == '__main__':
                    help='which transform to run, default runs all\
                          of the transforms that are implemented',
                    choices=DataModel.list_algorithms())
-    p.add_argument('-d', '--data_dir', default=cfg.data_dir,
-                   help='location of processed expression data')
     p.add_argument('-k', '--num_components', type=int,
                    help='dimensionality of z')
     p.add_argument('-n', '--num_seeds', type=int, default=5,
@@ -64,11 +62,11 @@ if __name__ == '__main__':
     # load input expression data
     logging.debug('Loading raw gene expression data...')
     rnaseq_train = (
-        os.path.join(args.data_dir,
+        os.path.join(cfg.data_dir,
                      'train_tcga_expression_matrix_processed.tsv.gz')
         )
     rnaseq_test = (
-        os.path.join(args.data_dir,
+        os.path.join(cfg.data_dir,
                      'test_tcga_expression_matrix_processed.tsv.gz')
         )
 

@@ -60,21 +60,21 @@ if __name__ == '__main__':
     # Load and process X matrix
     logging.debug('Loading raw gene expression data...')
     rnaseq_train = (
-        os.path.join(args.data_dir,
+        os.path.join(cfg.data_dir,
                      'train_tcga_expression_matrix_processed.tsv.gz')
         )
     rnaseq_test = (
-        os.path.join(args.data_dir,
+        os.path.join(cfg.data_dir,
                      'test_tcga_expression_matrix_processed.tsv.gz')
         )
 
     rnaseq_train_df = pd.read_csv(rnaseq_train, index_col=0, sep='\t')
     rnaseq_test_df = pd.read_csv(rnaseq_test, index_col=0, sep='\t')
 
-    if args.subset_mad_genes is not None:
-        mad_file = os.path.join(cfg.data_dir, 'tcga_mad_genes.tsv')
-        rnaseq_train_df, rnaseq_test_df = subset_genes_by_mad(
-            rnaseq_train_df, rnaseq_test_df, mad_file, args.subset_mad_genes)
+    # TODO: is option for subset by mad genes necessary?
+    mad_file = os.path.join(cfg.data_dir, 'tcga_mad_genes.tsv')
+    rnaseq_train_df, rnaseq_test_df = subset_genes_by_mad(
+        rnaseq_train_df, rnaseq_test_df, mad_file, cfg.num_features_raw)
 
     # Scale RNAseq matrix the same way RNAseq was scaled for
     # compression algorithms
@@ -194,7 +194,7 @@ if __name__ == '__main__':
             # Train the model
             logging.debug(
                 "Training model {} of 2 for gene {} of {}".format(
-                    model_no, num_models, gene_idx+1, num_genes)
+                    model_no, gene_idx+1, num_genes)
             )
 
             model_no += 1
@@ -229,7 +229,7 @@ if __name__ == '__main__':
                 feature_names=x_train_df.columns,
                 signal=signal,
                 z_dim=cfg.num_features_raw,
-                seed=seed,
+                seed=args.seed,
                 algorithm=algorithm,
             )
 
@@ -238,15 +238,15 @@ if __name__ == '__main__':
             # Store all results
             train_metrics_, train_roc_df, train_pr_df = summarize_results(
                 y_train_results, gene_name, signal, cfg.num_features_raw,
-                seed, algorithm, "train"
+                args.seed, algorithm, "train"
             )
             test_metrics_, test_roc_df, test_pr_df = summarize_results(
                 y_test_results, gene_name, signal, cfg.num_features_raw,
-                seed, algorithm, "test"
+                args.seed, algorithm, "test"
             )
             cv_metrics_, cv_roc_df, cv_pr_df = summarize_results(
                 y_cv_results, gene_name, signal, cfg.num_features_raw,
-                seed, algorithm, "cv"
+                args.seed, algorithm, "cv"
             )
 
             # Compile summary metrics
