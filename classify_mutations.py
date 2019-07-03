@@ -21,6 +21,7 @@ from tcga_util import (
     build_feature_dictionary,
     check_status,
 )
+from data_models import DataModel
 
 def load_top_50():
     """Load top 50 mutated genes from BioBombe repo.
@@ -70,11 +71,18 @@ def load_pancancer_data():
 if __name__ == '__main__':
 
     p = argparse.ArgumentParser()
+    p.add_argument('--algorithm', default=None,
+                   help='which transform to run, default runs all\
+                         of the transforms that are implemented',
+                   choices=DataModel.list_algorithms())
     p.add_argument('--gene_list', nargs='*', default=None,
                    help='<Optional> Provide a list of genes to run\
                          mutation classification for; default is all genes')
     p.add_argument('--verbose', action='store_true')
     args = p.parse_args()
+
+    algs_to_run = ([args.algorithm] if args.algorithm
+                                    else DataModel.list_algorithms())
 
     if args.verbose:
         logging.basicConfig(level=logging.DEBUG, format='%(message)s')
@@ -173,7 +181,7 @@ if __name__ == '__main__':
                     z_train_file = z_matrix_dict[signal][z_dim][seed]["train"]
                     z_test_file = z_matrix_dict[signal][z_dim][seed]["test"]
 
-                    for alg in cfg.algorithms:
+                    for alg in algs_to_run:
                         # Load and process data
                         train_samples, x_train_df, y_train_df = align_matrices(
                             x_file_or_df=z_train_file, y=y_df, algorithm=alg

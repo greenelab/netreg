@@ -23,19 +23,19 @@ from dask_ml.model_selection import GridSearchCV
 import config as cfg
 
 
-def build_feature_dictionary(dataset="TCGA", load_data=False,
-                             store_train_test="both"):
+def build_feature_dictionary(load_data=False, store_train_test="both"):
     """
     Generate a nested dictionary of the directory structure pointing to compressed
     feature matrices for training and testing sets
 
     Arguments:
-    dataset - which dataset to load the z matrices from (default - "TCGA")
-    load_data - boolean if the data is to be loaded and stored in the return dict
-    store_train_test - string indicating which data to load ['train', 'test', 'both']
+    load_data - boolean if the data is to be loaded and stored in the
+                return dict
+    store_train_test - string indicating which data to load
+                       ['train', 'test', 'both']
 
-    Output: a nested dictionary storing the feature matrices from training and testing
-    sets
+    Output: a nested dictionary storing the feature matrices from
+            training and testing sets
     """
 
     z_matrix_dict = {}
@@ -86,106 +86,6 @@ def build_feature_dictionary(dataset="TCGA", load_data=False,
 
 
     return z_matrix_dict, num_models
-
-
-def build_top_feature_dictionary(algorithms, genes, num_features, load_random=True):
-    """
-    Generate a nested dictionary of the specific x matrices to train using
-
-    Arguments:
-    algorithms - list of algorithms to match ['pca', 'ica', 'nmf', 'dae', 'vae', 'all']
-    genes - list of genes to match ['TP53', 'PTEN', 'KRAS', 'PIK3CA', 'TTN']
-    num_features - list of the number of features used in prediction
-    load_random - boolean if the random features should be loaded as well
-
-    Output: a nested dictionary storing the x matrices for training and testing
-    """
-
-    base_path = os.path.join("results", "top_feature_matrices")
-    x_matrix_dict = {}
-    for algorithm in algorithms:
-        x_matrix_dict[algorithm] = {}
-
-        for gene in genes:
-            x_matrix_dict[algorithm][gene] = {}
-
-            for n in num_features:
-                x_matrix_dict[algorithm][gene][n] = {}
-
-                base_file = os.path.join(
-                    base_path,
-                    "top_model_algorithm_{}_gene_{}_numtopfeatures_{}".format(
-                        algorithm, gene, n
-                    ),
-                )
-
-                train_file = "{}_train.tsv.gz".format(base_file)
-                test_file = "{}_test.tsv.gz".format(base_file)
-
-                train_df = pd.read_csv(train_file, sep="\t", index_col=0)
-                test_df = pd.read_csv(test_file, sep="\t", index_col=0)
-
-                x_matrix_dict[algorithm][gene][n]["train"] = train_df
-                x_matrix_dict[algorithm][gene][n]["test"] = test_df
-
-                if load_random and n == 200:
-                    x_matrix_dict[algorithm][gene][n]["randomized"] = {}
-                    base_file = "{}_randomized".format(base_file)
-
-                    train_file = "{}_train.tsv.gz".format(base_file)
-                    test_file = "{}_test.tsv.gz".format(base_file)
-
-                    train_df = pd.read_csv(train_file, sep="\t", index_col=0)
-                    test_df = pd.read_csv(test_file, sep="\t", index_col=0)
-
-                    x_matrix_dict[algorithm][gene][n]["randomized"]["train"] = train_df
-                    x_matrix_dict[algorithm][gene][n]["randomized"]["test"] = test_df
-
-    return x_matrix_dict
-
-
-def get_feature(
-    z_dim, seed, feature=None, algorithm=None, shuffled=False, dataset="TCGA"
-):
-    """
-    Load z matrix and extract specific feature scores
-    """
-
-    if shuffled:
-        base_results = "{}_shuffled_results".format(dataset)
-        model_train_file = "model_{}_shuffled_z_matrix.tsv.gz".format(seed)
-        model_test_file = "model_{}_shuffled_z_test_matrix.tsv.gz".format(seed)
-    else:
-        base_results = "{}_results".format(dataset)
-        model_train_file = "model_{}_z_matrix.tsv.gz".format(seed)
-        model_test_file = "model_{}_z_test_matrix.tsv.gz".format(seed)
-
-    base_file = os.path.join(
-        "..",
-        "2.ensemble-z-analysis",
-        "results",
-        base_results,
-        "ensemble_z_matrices",
-        "tcga_components_{}".format(z_dim),
-    )
-    train_file = os.path.join(base_file, model_train_file)
-    test_file = os.path.join(base_file, model_test_file)
-
-    if algorithm:
-        test_df = pd.read_csv(test_file, index_col=0, sep='\t')
-        test_df = test_df.loc[:, test_df.columns.str.contains(algorithm)].sort_index()
-        train_df = pd.read_csv(train_file, index_col=0, sep='\t')
-        train_df = train_df.loc[
-            :, train_df.columns.str.contains(algorithm)
-        ].sort_index()
-    elif feature:
-        test_df = pd.read_csv(test_file, index_col=0, sep='\t').loc[:, feature].sort_index()
-        train_df = pd.read_csv(train_file, index_col=0, sep='\t').loc[:, feature].sort_index()
-    else:
-        test_df = pd.read_csv(test_file, index_col=0, sep='\t')
-        train_df = pd.read_csv(train_file, index_col=0, sep='\t')
-
-    return test_df, train_df
 
 
 def get_threshold_metrics(y_true, y_pred, drop=False):

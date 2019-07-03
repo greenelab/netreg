@@ -105,65 +105,66 @@ if __name__ == '__main__':
     test_reconstruction_results = []
 
     logging.debug('Fitting compressed models...')
-    for algorithm in algs_to_run:
-        recon_file = os.path.join(args.output_dir,
-                                  '{}_{}reconstruction.tsv'.format(
-                                      algorithm, file_prefix))
-        for ix, seed in enumerate(random_seeds, 1):
-            np.random.seed(seed)
-            seed_file = os.path.join(comp_out_dir, '{}_{}'.format(
-                                     algorithm, seed))
-            if args.shuffle:
-                seed_file = '{}_shuffled'.format(seed_file)
-                shuffled_train_df = shuffle_train_genes(rnaseq_train_df)
-                dm = DataModel(df=shuffled_train_df,
-                               test_df=rnaseq_test_df)
-                dm.transform(how='zeroone')
+    recon_file = os.path.join(args.output_dir,
+                              '{}reconstruction.tsv'.format(
+                              file_prefix))
 
-            logging.debug('-- Fitting {} model for random seed {} of {}'.format(
-                          algorithm, ix, len(random_seeds)))
+    for ix, seed in enumerate(random_seeds, 1):
+        np.random.seed(seed)
+        seed_file = os.path.join(comp_out_dir, 'model_{}'.format(seed))
+        if args.shuffle:
+            seed_file = '{}_shuffled'.format(seed_file)
+            shuffled_train_df = shuffle_train_genes(rnaseq_train_df)
+            dm = DataModel(df=shuffled_train_df,
+                           test_df=rnaseq_test_df)
+            dm.transform(how='zeroone')
 
-            if algorithm == 'pca':
-                dm.pca(n_components=args.num_components,
-                       transform_test_df=True)
-            elif algorithm == 'nmf':
-                dm.nmf(n_components=args.num_components,
-                       transform_test_df=True,
-                       seed=seed)
+        if 'pca' in algs_to_run:
+            logging.debug('-- Fitting pca model for random seed {} of {}'.format(
+                          ix, len(random_seeds)))
 
-            # Obtain z matrix (sample scores per latent space feature) for all models
-            full_z_file = os.path.join(cfg.models_dir,
-                            '{}_z_matrix.tsv.gz'.format(seed_file))
-            dm.combine_models().to_csv(full_z_file, sep='\t', compression='gzip')
+            dm.pca(n_components=args.num_components,
+                   transform_test_df=True)
+        if 'nmf' in algs_to_run:
+            logging.debug('-- Fitting nmf model for random seed {} of {}'.format(
+                          ix, len(random_seeds)))
+            dm.nmf(n_components=args.num_components,
+                   transform_test_df=True,
+                   seed=seed)
 
-            full_test_z_file = os.path.join(cfg.models_dir,
-                            '{}_z_test_matrix.tsv.gz'.format(seed_file))
-            dm.combine_models(test_set=True).to_csv(full_test_z_file, sep='\t',
-                                                    compression='gzip')
+        # Obtain z matrix (sample scores per latent space feature) for all models
+        full_z_file = os.path.join(cfg.models_dir,
+                        '{}_z_matrix.tsv.gz'.format(seed_file))
+        dm.combine_models().to_csv(full_z_file, sep='\t', compression='gzip')
 
-            # Obtain weight matrices (gene by latent space feature) for all models
-            full_weight_file = os.path.join(cfg.models_dir,
-                            '{}_weight_matrix.tsv.gz'.format(seed_file))
-            dm.combine_weight_matrix().to_csv(full_weight_file, sep='\t',
-                                              compression='gzip')
+        full_test_z_file = os.path.join(cfg.models_dir,
+                        '{}_z_test_matrix.tsv.gz'.format(seed_file))
+        dm.combine_models(test_set=True).to_csv(full_test_z_file, sep='\t',
+                                                compression='gzip')
 
-            # Store reconstruction costs and reconstructed input at training end
-            full_reconstruction, reconstructed_matrices = dm.compile_reconstruction()
+        # Obtain weight matrices (gene by latent space feature) for all models
+        full_weight_file = os.path.join(cfg.models_dir,
+                        '{}_weight_matrix.tsv.gz'.format(seed_file))
+        dm.combine_weight_matrix().to_csv(full_weight_file, sep='\t',
+                                          compression='gzip')
 
-            # Store reconstruction evaluation and data for test set
-            full_test_recon, test_recon_mat = dm.compile_reconstruction(test_set=True)
+        # Store reconstruction costs and reconstructed input at training end
+        full_reconstruction, reconstructed_matrices = dm.compile_reconstruction()
 
-            reconstruction_results.append(
-                full_reconstruction.assign(seed=seed, shuffled=args.shuffle)
-                )
+        # Store reconstruction evaluation and data for test set
+        full_test_recon, test_recon_mat = dm.compile_reconstruction(test_set=True)
 
-            test_reconstruction_results.append(
-                full_test_recon.assign(seed=seed, shuffled=args.shuffle)
-                )
+        reconstruction_results.append(
+            full_reconstruction.assign(seed=seed, shuffled=args.shuffle)
+            )
 
-        # Save reconstruction results
-        pd.concat([
-            pd.concat(reconstruction_results).assign(data_type='training'),
-            pd.concat(test_reconstruction_results).assign(data_type='testing')
-        ]).reset_index(drop=True).to_csv(recon_file, sep='\t', index=False)
+        test_reconstruction_results.append(
+            full_test_recon.assign(seed=seed, shuffled=args.shuffle)
+            )
+
+    # Save reconstruction results
+    pd.concat([
+        pd.concat(reconstruction_results).assign(data_type='training'),
+        pd.concat(test_reconstruction_results).assign(data_type='testing')
+    ]).reset_index(drop=True).to_csv(recon_file, sep='\t', index=False)
 
