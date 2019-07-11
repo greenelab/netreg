@@ -13,3 +13,14 @@ Current goals of this project:
     [here](https://github.com/suinleelab/attributionpriors/blob/master/graph/Graph_Attribution_Prior.ipynb),
     or network-regularized NMF as implemented [here](https://github.com/raphael-group/netNMF-sc))
     using a variety of biological networks.
+
+## Setup
+
+We recommend using the conda environment specified in the `environment.yml` file to run these analyses. To build and activate this environment, run:
+
+```
+# conda version 4.5.0
+conda env create --file environment.yml
+
+conda activate netreg
+```
