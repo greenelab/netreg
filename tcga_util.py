@@ -1,8 +1,7 @@
 """
-Gregory Way 2018
-tcga_util.py
+Adapted from:
+https://github.com/greenelab/BioBombe/blob/master/9.tcga-classify/scripts/tcga_util.py
 
-Usage: For import only
 """
 
 import os
