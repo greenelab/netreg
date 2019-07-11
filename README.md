@@ -18,7 +18,7 @@ Current goals of this project:
 
 We recommend using the conda environment specified in the `environment.yml` file to run these analyses. To build and activate this environment, run:
 
-```
+```shell
 # conda version 4.5.0
 conda env create --file environment.yml
 
