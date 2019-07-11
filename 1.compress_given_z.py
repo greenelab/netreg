@@ -1,5 +1,5 @@
 """
-Adapted from
+Adapted from:
 https://github.com/greenelab/BioBombe/blob/master/2.sequential-compression/scripts/train_models_given_z.py
 
 """
